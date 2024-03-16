@@ -1,8 +1,4 @@
-import Vue from 'vue'
-import App from './App.vue'
-import router from './router'
-import store from './store'
-import vuetify from './plugins/vuetify'
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs } from 'firebase/firestore/lite';
 
@@ -18,12 +14,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-
-Vue.config.productionTip = false
-
-new Vue({
-  router,
-  store,
-  vuetify,
-  render: h => h(App)
-}).$mount('#app')
+// async function getCities(db) {
+//   const citiesCol = collection(db, 'cities');
+//   const citySnapshot = await getDocs(citiesCol);
+//   const cityList = citySnapshot.docs.map(doc => doc.data());
+//   return cityList;
+// }
