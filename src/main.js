@@ -6,6 +6,7 @@ import vuetify from './plugins/vuetify';
 import { initializeApp } from "firebase/app";
 import { getFirestore } from 'firebase/firestore/lite';
 
+
 const firebaseConfig = {
     apiKey: process.env.VUE_APP_FIREBASE_API_KEY,
     authDomain: process.env.VUE_APP_FIREBASE_AUTH_DOMAIN,
