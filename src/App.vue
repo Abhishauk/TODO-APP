@@ -2,7 +2,7 @@
   <v-app id="inspire">
     <v-app-bar app>
     
-      <v-toolbar-title>Application</v-toolbar-title>
+      <v-toolbar-title>TODO-APP</v-toolbar-title>
     </v-app-bar>
 
     <v-container fluid>

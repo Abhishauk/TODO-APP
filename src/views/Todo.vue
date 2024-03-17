@@ -5,37 +5,34 @@
       <v-toolbar color="black" dark>
         <v-toolbar-title>TODO List</v-toolbar-title>
         <v-spacer></v-spacer>
+        <v-toolbar color="black" dark>
+          <v-text-field v-model="searchQuery" label="Search" dense hide-details solo-inverted></v-text-field>
+        </v-toolbar>
+
         <v-btn color="success" @click="showAddDialog = true">Add Task</v-btn>
       </v-toolbar>
 
       <!-- Filter section -->
       <v-toolbar color="grey lighten-1" dark>
-        <v-select
-          v-model="selectedStatus"
-          :items="statusOptions"
-          label="Filter by Status"
-          dense
-          hide-details
-          class="filter-select"
-          @change="filterTasks"
-          solo-inverted
-        ></v-select>
+        <v-select v-model="selectedStatus" :items="statusOptions" label="Filter by Status" dense hide-details
+          class="filter-select" @change="filterTasks" solo-inverted></v-select>
       </v-toolbar>
 
       <!-- Task List -->
-      <v-list v-if="filteredTasks.length > 0">
-        <v-list-item v-for="(task, index) in filteredTasks" :key="index" class="todo-task">
+      <v-list v-if="taskList.length > 0">
+        <v-list-item v-for="(task, index) in taskList" :key="index" class="todo-task">
           <v-list-item-content>
             <v-list-item-title class="task-name">{{ task.name }}</v-list-item-title>
             <v-list-item-subtitle class="task-info">Status: {{ task.status }}</v-list-item-subtitle>
             <v-list-item-subtitle class="task-info">Created At: {{ getIST(task.createdAt) }}</v-list-item-subtitle>
-            <v-list-item-subtitle v-if="task.updatedAt" class="task-info">Updated At: {{ getIST(task.updatedAt) }}</v-list-item-subtitle>
+            <v-list-item-subtitle v-if="task.updatedAt" class="task-info">Updated At: {{ getIST(task.updatedAt)
+              }}</v-list-item-subtitle>
           </v-list-item-content>
           <v-list-item-action>
-            <v-btn icon @click="editTask(index)">
+            <v-btn icon @click="editTask(index, task.id)">
               <v-icon>mdi-pencil</v-icon>
             </v-btn>
-            <v-btn icon @click="deleteTask(index)">
+            <v-btn icon @click="deleteTask(index, task.id)">
               <v-icon>mdi-delete</v-icon>
             </v-btn>
           </v-list-item-action>
@@ -52,7 +49,7 @@
             <v-select v-model="newTask.status" :items="['Todo', 'In Progress', 'Completed']" label="Status"></v-select>
           </v-card-text>
           <v-card-actions>
-            <v-btn color="primary" @click="saveTask">{{ editedTaskIndex !== null ? 'Save' : 'Add' }}</v-btn>
+            <v-btn color="success" @click="saveTask">{{ editedTaskIndex !== null ? 'Save' : 'Add' }}</v-btn>
             <v-btn @click="cancelEdit">Cancel</v-btn>
           </v-card-actions>
         </v-card>
@@ -70,14 +67,13 @@
 </template>
 
 <script>
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc } from 'firebase/firestore/lite';
+import { db } from '../main';
+
 export default {
   data() {
     return {
-      tasks: [
-        { name: 'Task 1', status: 'Todo', createdAt: '2024-03-16', updatedAt: '' },
-        { name: 'Task 2', status: 'In Progress', createdAt: '2024-03-15', updatedAt: '2024-03-16' },
-        { name: 'Task 3', status: 'Completed', createdAt: '2024-03-14', updatedAt: '' }
-      ],
+      tasks: [],
       newTask: {
         name: '',
         status: ''
@@ -87,65 +83,156 @@ export default {
       selectedStatus: '',
       snackbar: false,
       snackbarColor: 'success',
-      timeout: 6000 // Snackbar timeout in milliseconds
+      timeout: 6000,// Snackbar timeout in milliseconds
+
+      searchQuery: '',
+      filteredTasks: []
     };
   },
 
   computed: {
-    filteredTasks() {
-      if (!this.selectedStatus) return this.tasks;
-      return this.tasks.filter(task => task.status === this.selectedStatus);
+    taskList() {
+      let filteredTasks = this.tasks;
+
+      // Filter by status
+      if (this.selectedStatus) {
+        filteredTasks = filteredTasks.filter(task => task.status === this.selectedStatus);
+      }
+
+      // Filter by search query
+      if (this.searchQuery.trim() !== '') {
+        const searchRegex = new RegExp(this.searchQuery.trim(), 'i');
+        filteredTasks = filteredTasks.filter(task => searchRegex.test(task.name));
+      }
+
+      return filteredTasks;
     },
     statusOptions() {
       return [...new Set(this.tasks.map(task => task.status))];
     }
   },
 
+
   methods: {
-    addTask() {
-      this.tasks.push({
-        name: this.newTask.name,
-        status: this.newTask.status,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: ''
-      });
-      this.resetNewTask();
-      this.showAddDialog = false;
-      this.showSnackbar(); // Show snackbar when task is added
+    async addTask() {
+      try {
+        await addDoc(collection(db, 'tasks'), {
+          name: this.newTask.name,
+          status: this.newTask.status,
+          createdAt: new Date().toISOString(), // Store complete ISO date string
+          updatedAt: new Date().toISOString(), // Store complete ISO date string
+        });
+
+        // Reset the newTask object
+        this.resetNewTask();
+
+        // Fetch tasks again after adding the new task
+        this.getDatas();
+
+        // Show toast message for adding task
+        this.showAddToast();
+
+        // Close the add dialog
+        this.showAddDialog = false;
+      } catch (error) {
+        console.error('Error adding task: ', error);
+      }
     },
-    editTask(index) {
+
+
+    async deleteTask(index, id) {
+      try {
+        await deleteDoc(doc(db, 'tasks', id));
+        this.tasks.splice(index, 1);
+
+        // Show toast message for deleting task
+        this.showDeleteToast();
+      } catch (error) {
+        console.error('Error deleting task: ', error);
+      }
+    },
+
+    async editTask(index, id) {
       this.editedTaskIndex = index;
       this.newTask.name = this.tasks[index].name;
       this.newTask.status = this.tasks[index].status;
+      this.newTask.id = id; // Store the task ID in newTask
       this.showAddDialog = true;
+      this.getDatas();
     },
-    saveTask() {
+
+    async saveTask() {
       if (this.editedTaskIndex !== null) {
-        this.tasks[this.editedTaskIndex].name = this.newTask.name;
-        this.tasks[this.editedTaskIndex].status = this.newTask.status;
-        this.tasks[this.editedTaskIndex].updatedAt = new Date().toISOString().split('T')[0];
+        // Use the task ID for the update operation
+        const taskRef = doc(db, 'tasks', this.newTask.id);
+        await updateDoc(taskRef, {
+          name: this.newTask.name,
+          status: this.newTask.status,
+          updatedAt: new Date().toISOString().split('T')[0]
+        });
+
+        // Update the task list locally without refreshing
+        const updatedTaskIndex = this.tasks.findIndex(task => task.id === this.newTask.id);
+        if (updatedTaskIndex !== -1) {
+          this.tasks[updatedTaskIndex].name = this.newTask.name;
+          this.tasks[updatedTaskIndex].status = this.newTask.status;
+          this.tasks[updatedTaskIndex].updatedAt = new Date().toISOString().split('T')[0];
+        }
+
         this.resetNewTask();
         this.editedTaskIndex = null;
         this.showAddDialog = false;
+
+        // Show toast message for editing task
+        this.showEditToast();
       } else {
         this.addTask();
       }
     },
+
+    showAddToast() {
+      this.snackbarColor = 'success';
+      this.snackbarMessage = 'Task added successfully!';
+      this.showSnackbar();
+    },
+
+    showDeleteToast() {
+      this.snackbarColor = 'error';
+      this.snackbarMessage = 'Task deleted successfully!';
+      this.showSnackbar();
+    },
+
+    showEditToast() {
+      this.snackbarColor = 'warning';
+      this.snackbarMessage = 'Task edited successfully!';
+      this.showSnackbar();
+    },
+
     cancelEdit() {
       this.resetNewTask();
       this.editedTaskIndex = null;
       this.showAddDialog = false;
     },
+
     resetNewTask() {
       this.newTask.name = '';
       this.newTask.status = '';
     },
-    deleteTask(index) {
-      this.tasks.splice(index, 1);
+
+    async getDatas() {
+      try {
+        const taskdata = collection(db, 'tasks');
+        const tasksSnapshot = await getDocs(taskdata);
+        const taskList = tasksSnapshot.docs.map(doc => {
+          return { id: doc.id, ...doc.data() };
+        });
+        console.log("/////", taskList);
+        this.tasks = taskList;
+      } catch (error) {
+        console.error('Error fetching tasks: ', error);
+      }
     },
-    filterTasks() {
-      // You can add filtering logic here if needed
-    },
+
     getIST(timestamp) {
       const date = new Date(timestamp);
       const options = {
@@ -160,34 +247,15 @@ export default {
       };
       return date.toLocaleString('en-IN', options);
     },
+
     showSnackbar() {
       this.snackbar = true;
     }
+  },
+
+  mounted() {
+    // Fetch tasks when the component is mounted
+    this.getDatas();
   }
 };
 </script>
-
-<style scoped>
-.filter-select {
-  width: 150px; /* Set width as desired */
-}
-
-.todo-task {
-  border: 1px solid #ddd;
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: #f9f9f9;
-}
-
-.task-name {
-  font-family: 'Arial', sans-serif;
-  font-size: 18px;
-  color: #333;
-}
-
-.task-info {
-  font-family: 'Arial', sans-serif;
-  font-size: 14px;
-  color: #666;
-}
-</style>
