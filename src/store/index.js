@@ -16,7 +16,7 @@ export default new Vuex.Store({
     snackbar: false,
     snackbarColor: '',
     snackbarMessage: '',
-    timeout: 6000, // Snackbar timeout in milliseconds
+    timeout: 6000, 
     searchQuery: '',
     filteredTasks: []
   },
