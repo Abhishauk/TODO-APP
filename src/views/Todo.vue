@@ -133,7 +133,7 @@ export default {
       'editedTaskIndex',
       'showAddDialog',
       'snackbar',
-      'snackbarColor',
+      'snackbarColor',    
       'snackbarMessage',
       'timeout',
       'filteredTasks'
