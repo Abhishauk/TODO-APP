@@ -31,7 +31,7 @@
             <v-list-item-subtitle class="task-info">
               <span class="status-label">Status:</span>
               <!-- Chip indicating task status -->
-              <v-chip :color="getStatusColor(task.status)" text class="status-chip">{{ task.status }}</v-chip>
+              <v-chip :color="getStatusColor(task.status)" :class="getChipShapeClass(task.status)" text class="status-chip">{{ task.status }}</v-chip>
             </v-list-item-subtitle>
             <!-- Created date of the task -->
             <v-list-item-subtitle class="task-info custom-created-at">
@@ -54,11 +54,11 @@
           </v-list-item-content>
           <!-- Action buttons for each task (Edit and Delete) -->
           <v-list-item-action>
-            <v-btn icon @click="editTask(index, task.id)">
-              <v-icon color="primary">mdi-account-edit</v-icon> <!-- Edit icon -->
+            <v-btn icon class="edit-btn" @click="editTask(index, task.id)">
+              <v-icon>mdi-account-edit</v-icon> <!-- Edit icon -->
             </v-btn>
-            <v-btn icon @click="deleteTask(index, task.id)">
-              <v-icon color="error">mdi-trash-can</v-icon> <!-- Delete icon -->
+            <v-btn icon class="delete-btn" @click="deleteTask(index, task.id)">
+              <v-icon>mdi-trash-can</v-icon> <!-- Delete icon -->
             </v-btn>
           </v-list-item-action>
         </v-list-item>
@@ -363,33 +363,49 @@ export default {
 </script>
 
 <style scoped>
-.todo-task {
-  cursor: pointer;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  padding: 10px;
-  transition: background-color 0.3s ease;
-}
+  /* Edit button style */
+  .edit-btn {
+    color: #1976d2; /* Blue color */
+  }
 
-.todo-task:hover {
-  background-color: #f0f0f0;
-}
+  /* Delete button style */
+  .delete-btn {
+    color: #f44336; /* Red color */
+  }
 
-.status-label {
-  font-size: smaller;
-  margin-right: 8px;
-}
+  /* Hover effect for buttons */
+  .edit-btn:hover,
+  .delete-btn:hover {
+    opacity: 0.8;
+  }
 
-.status-chip {
-  font-size: smaller;
-}
+  .todo-task {
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    padding: 10px;
+    transition: background-color 0.3s ease;
+  }
 
-.created-at,
-.updated-at,
-.due-date {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
-}
+  .todo-task:hover {
+    background-color: #f0f0f0;
+  }
+
+  .status-label {
+    font-size: smaller;
+    margin-right: 8px;
+  }
+
+  .status-chip {
+    font-size: smaller;
+  }
+
+  .created-at,
+  .updated-at,
+  .due-date {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+  }
 </style>
